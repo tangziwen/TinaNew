@@ -128,8 +128,8 @@ TokenInfo TinaTokenizer::getNextToken()
 	result.m_tokenType = TokenType::TOKEN_TYPE_NOT_INVALID;
 	
 
-	//skip blank characters
-	while(currChar() == ' ' || currChar() == '\t')
+	//skip blank characters, new line means blank in tina like C.
+	while(currChar() == ' ' || currChar() == '\t' || currChar() == '\r' || currChar() == '\n')
 	{
 		nextChar();
 	}
@@ -181,6 +181,21 @@ TokenInfo TinaTokenizer::getNextToken()
 		result.m_tokenType = TokenType::TOKEN_TYPE_NUM;
 		result.m_tokenValue = tmpStr;
 
+	}
+	else if(currChar() == ';')
+	{
+		nextChar();
+		result.m_tokenType = TokenType::TOKEN_TYPE_SEMICOLON;
+	}
+	else if(currChar() == '{')
+	{
+		nextChar();
+		result.m_tokenType = TokenType::TOKEN_TYPE_LEFT_BRACE;
+	}
+	else if(currChar() == '}')
+	{
+		nextChar();
+		result.m_tokenType = TokenType::TOKEN_TYPE_RIGHT_BRACE;
 	}
 	else if(currChar() == '(')
 	{

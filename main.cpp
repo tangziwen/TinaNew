@@ -6,7 +6,7 @@ using namespace  tzw;
 int main()
 {
 	TinaTokenizer *tokenizer = new TinaTokenizer();
-	tokenizer->loadStr("print(3, 2, 1)");
+	tokenizer->loadStr("{a = 3; print(a + 2);}");
 	std::vector<TokenInfo> result =  tokenizer->getTokenList();
 	for(TokenInfo& token : result)
 	{

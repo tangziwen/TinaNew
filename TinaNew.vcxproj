@@ -139,11 +139,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Src\TinaCompiler.cpp" />
     <ClCompile Include="Src\TinaParser.cpp" />
     <ClCompile Include="Src\TinaTokenizer.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Src\TinaCompiler.h" />
     <ClInclude Include="Src\TinaParser.h" />
     <ClInclude Include="Src\TinaTokenizer.h" />
   </ItemGroup>

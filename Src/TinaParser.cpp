@@ -21,8 +21,54 @@ void TinaParser::parse(std::vector<TokenInfo> tokenList)
 	m_tokenList = tokenList;
 	m_tokenPos = 0;
 	m_root = new TinaASTNode(TinaASTNodeType::SEQUENCE);
-	auto exprNode = parseExpr();
+	auto exprNode = parseBlockStatement();
 	m_root->addChild(exprNode);
+}
+
+TinaASTNode* TinaParser::parseStatement()
+{
+	TinaASTNode * node;
+	if(currToken().m_tokenType == TokenType::TOKEN_TYPE_LEFT_BRACE)
+	{
+		node = parseBlockStatement();
+	}
+	else
+	{
+		node = parseSingleStatement();
+	}
+	return node;
+}
+
+TinaASTNode* TinaParser::parseBlockStatement()
+{
+	auto blockNode = new TinaASTNode(TinaASTNodeType::SEQUENCE);
+	if(currToken().m_tokenType == TokenType::TOKEN_TYPE_LEFT_BRACE)
+	{
+		nextToken();
+		while(currToken().m_tokenType != TokenType::TOKEN_TYPE_RIGHT_BRACE)
+		{
+			TinaASTNode * node = parseSingleStatement();
+			blockNode->addChild(node);
+		}
+		nextToken();//eat the right brace
+	}
+	return blockNode;
+}
+
+TinaASTNode* TinaParser::parseSingleStatement()
+{
+	TinaASTNode * statementNode = nullptr;
+	if(currToken().m_tokenType == TokenType::TOKEN_TYPE_SEMICOLON)//empty statement
+	{
+		statementNode = new TinaASTNode(TinaASTNodeType::SEQUENCE);
+		nextToken();
+	}
+	else
+	{
+		statementNode = parseExpr();
+		nextToken();//eat the semicolon
+	}
+	return statementNode;
 }
 
 TinaASTNode* TinaParser::parseExpr()

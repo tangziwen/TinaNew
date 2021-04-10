@@ -22,6 +22,14 @@ struct TinaASTNode
 };
 
 /*
+ * <statement>	: blockstatement
+ *				| singlestatement
+ *
+ * <blockstatement>	: <{> { <singlestatement> } <}>;
+ * 
+ * <singlestatement>	: ;
+ *				| <expr> ;
+ *				
  * <expr>		: <assignexpr> {, <assignexpr>}
  * 
  * <assignexpr> : <identifier> = <compexpr>
@@ -42,8 +50,8 @@ struct TinaASTNode
  *               
  * <postfixexpr> : <factor> {( <factor> )}
  *               | <factor> {[ <factor> ]}
- *               | <factor> {( )}
- *               | <factor> {( <factor> )}
+ *               | <factor> {<(> <)>}
+ *               | <factor> {<(> <factor> <)>}
  *               
  * <factor>      : <identifier>
  *               | <num>
@@ -55,6 +63,9 @@ class TinaParser
 public:
 	void parse(std::vector<TokenInfo> tokenList);
 private:
+	TinaASTNode * parseStatement();
+	TinaASTNode * parseBlockStatement();
+	TinaASTNode * parseSingleStatement();
 	TinaASTNode * parseExpr();
 	TinaASTNode * parseAssign();
 	TinaASTNode * parseCompExpr();
@@ -67,7 +78,7 @@ private:
 	TokenInfo & tryNextToken();
 
 	std::vector<TokenInfo> m_tokenList;
-	int m_tokenPos = 0;
+	size_t m_tokenPos = 0;
 	TinaASTNode * m_root;
 	
 };

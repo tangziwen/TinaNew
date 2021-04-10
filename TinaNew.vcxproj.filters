@@ -27,12 +27,18 @@
     <ClCompile Include="Src\TinaParser.cpp">
       <Filter>Src</Filter>
     </ClCompile>
+    <ClCompile Include="Src\TinaCompiler.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Src\TinaTokenizer.h">
       <Filter>Src</Filter>
     </ClInclude>
     <ClInclude Include="Src\TinaParser.h">
+      <Filter>Src</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\TinaCompiler.h">
       <Filter>Src</Filter>
     </ClInclude>
   </ItemGroup>
