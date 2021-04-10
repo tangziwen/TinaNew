@@ -19,6 +19,7 @@ struct TinaASTNode
 	TokenInfo m_op;
 	TinaASTNode * m_parent;
 	TinaASTNodeType m_type;
+	bool m_isLvalue = false;
 };
 
 /*

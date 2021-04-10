@@ -9,6 +9,7 @@ struct TinaASTNode;
 enum class ILCommandType
 {
 	MOV,
+	LEA,
 	PUSH,
 	POP,
 	ADD,
@@ -52,14 +53,28 @@ struct ILCmd
 	ILCmd(ILCommandType type, OperandLocation A, OperandLocation B);
 	ILCmd(ILCommandType type, OperandLocation A, OperandLocation B, OperandLocation C);
 };
+
+struct TinaProgram
+{
+	TinaProgram()
+	{
+		
+	};
+	std::vector<std::string> envVar;
+	std::vector<std::string> stackVar;
+	std::vector<std::string> constVal;
+	std::vector<ILCmd> cmdList;
+};
+
 class TinaCompiler
 {
 public:
-	std::vector<ILCmd> gen(TinaASTNode * astRootNode);
+	TinaProgram gen(TinaASTNode * astRootNode);
 private:
-	void traverseAST(TinaASTNode * ast_node, std::vector<ILCmd> & cmdList, std::vector<std::string>& stackVar, std::vector<std::string>& constVal);
+	void traverseAST(TinaASTNode * ast_node, TinaProgram & program);
 	unsigned char m_registerIndex = 0;
 	std::unordered_map<std::string, int> m_stackMap;
+	std::unordered_map<std::string, int> m_envMap;
 	std::unordered_map<std::string, int> m_constMap;
 	
 };

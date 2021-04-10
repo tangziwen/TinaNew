@@ -141,12 +141,14 @@
   <ItemGroup>
     <ClCompile Include="Src\TinaCompiler.cpp" />
     <ClCompile Include="Src\TinaParser.cpp" />
+    <ClCompile Include="Src\TinaRunTime.cpp" />
     <ClCompile Include="Src\TinaTokenizer.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Src\TinaCompiler.h" />
     <ClInclude Include="Src\TinaParser.h" />
+    <ClInclude Include="Src\TinaRunTime.h" />
     <ClInclude Include="Src\TinaTokenizer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -102,8 +102,18 @@ TinaASTNode* TinaParser::parseAssign()
 	TinaASTNode * leftNode;
 
 	leftNode = parseCompExpr();
+
 	if(currToken().m_tokenType == TokenType::TOKEN_TYPE_OP_ASSIGN)
 	{
+		//lvaule check
+		if(leftNode->m_type != TinaASTNodeType::LEAF || 
+			((leftNode->m_type == TinaASTNodeType::OPERATOR) && currToken().m_tokenType != TokenType::TOKEN_TYPE_LEFT_SQUARE_BRACKET))
+		{
+			abort();//can't not produce lvaule
+		}
+		leftNode->m_isLvalue = true;
+
+		
 		TinaASTNode * opNode = nullptr;
 		opNode = new TinaASTNode(currToken(), TinaASTNodeType::OPERATOR);
 		nextToken();
@@ -225,6 +235,7 @@ TinaASTNode* TinaParser::parsePostfixExpr()
 		TinaASTNode * opNode = nullptr;
 		while(currToken().m_tokenType == TokenType::TOKEN_TYPE_LEFT_SQUARE_BRACKET)
 		{
+			opNode = new TinaASTNode(currToken(), TinaASTNodeType::OPERATOR);
 			nextToken();
 			auto rightNode = parseExpr();
 			nextToken();//skip right square bracket

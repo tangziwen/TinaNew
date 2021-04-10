@@ -16,25 +16,27 @@ ILCmd::ILCmd(ILCommandType type, OperandLocation A, OperandLocation B, OperandLo
 {
 }
 
-std::vector<ILCmd> TinaCompiler::gen(TinaASTNode* astRootNode)
+TinaProgram TinaCompiler::gen(TinaASTNode* astRootNode)
 {
+	TinaProgram program;
 	m_stackMap.clear();
 	m_constMap.clear();
 	
 	std::vector<ILCmd> cmdList;
 	std::vector<std::string> stackVar;
+	std::vector<std::string> envVar;
 	std::vector<std::string> constVal;
-	traverseAST(astRootNode, cmdList, stackVar, constVal);
+	traverseAST(astRootNode, program);
 
-	cmdList.push_back(ILCmd(ILCommandType::HALT));
-	return cmdList;
+	program.cmdList.push_back(ILCmd(ILCommandType::HALT));
+	return program;
 }
 
-void TinaCompiler::traverseAST(TinaASTNode* ast_node, std::vector<ILCmd> & cmdList, std::vector<std::string>& stackVar, std::vector<std::string>& constVal)
+void TinaCompiler::traverseAST(TinaASTNode* ast_node, TinaProgram & program)
 {
 	for(TinaASTNode * child : ast_node->m_children)
 	{
-		traverseAST(child, cmdList, stackVar, constVal);
+		traverseAST(child, program);
 	}
 	if(ast_node->m_type == TinaASTNodeType::SEQUENCE)
 	{
@@ -43,7 +45,7 @@ void TinaCompiler::traverseAST(TinaASTNode* ast_node, std::vector<ILCmd> & cmdLi
 	else if(ast_node->m_type == TinaASTNodeType::CALL)
 	{
 		int argNum = ast_node->m_children.size() - 1;
-		cmdList.push_back(ILCmd(ILCommandType::CALL,
+		program.cmdList.push_back(ILCmd(ILCommandType::CALL,
 			OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex - argNum), OperandLocation(LOCAL_TYPE_IMEEDIATE, argNum), OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex - argNum + 1)));
 		m_registerIndex -= argNum + 1;
 	}
@@ -52,28 +54,28 @@ void TinaCompiler::traverseAST(TinaASTNode* ast_node, std::vector<ILCmd> & cmdLi
 		switch (ast_node->m_op.m_tokenType)
 		{
 			case TokenType::TOKEN_TYPE_OP_PLUS:
-				cmdList.push_back(ILCmd(ILCommandType::ADD, 
+				program.cmdList.push_back(ILCmd(ILCommandType::ADD, 
 					OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex - 1), OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex), OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex - 2)));
 				m_registerIndex -= 2;
 				break;
 			case TokenType::TOKEN_TYPE_OP_MINUS:
-				cmdList.push_back(ILCmd(ILCommandType::SUB, 
+				program.cmdList.push_back(ILCmd(ILCommandType::SUB, 
 					OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex - 1), OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex), OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex - 2)));
 				m_registerIndex -= 2;
 				break;
 			case TokenType::TOKEN_TYPE_OP_MULTIPLY:
-				cmdList.push_back(ILCmd(ILCommandType::MUL, 
+				program.cmdList.push_back(ILCmd(ILCommandType::MUL, 
 					OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex - 1), OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex), OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex - 2)));
 				m_registerIndex -= 2;
 				break;
 			case TokenType::TOKEN_TYPE_OP_DIVIDE:
-				cmdList.push_back(ILCmd(ILCommandType::DIV, 
+				program.cmdList.push_back(ILCmd(ILCommandType::DIV, 
 					OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex - 1), OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex), OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex - 2)));
 				m_registerIndex -= 2;
 				break;
-			case TokenType::TOKEN_TYPE_OP_ASSIGN:
-				cmdList.push_back(ILCmd(ILCommandType::MOV, 
-					OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex - 1), OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex), OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex - 2)));
+			case TokenType::TOKEN_TYPE_OP_ASSIGN://!!!!左值右值问题
+				program.cmdList.push_back(ILCmd(ILCommandType::MOV, 
+					OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex - 1), OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex)));
 				m_registerIndex -= 2;
 				break;
 		}
@@ -84,26 +86,36 @@ void TinaCompiler::traverseAST(TinaASTNode* ast_node, std::vector<ILCmd> & cmdLi
 		char src = LOCAL_TYPE_LOCAL;
 		if(ast_node->m_op.m_tokenType == TokenType::TOKEN_TYPE_IDENTIFIER)
 		{
-			auto iter = m_stackMap.find(ast_node->m_op.m_tokenValue);
-			if(iter == m_stackMap.end())
+			auto iter = m_envMap.find(ast_node->m_op.m_tokenValue);
+			if(iter == m_envMap.end())
 			{
-				stackVar.push_back(ast_node->m_op.m_tokenValue);
-				addr = stackVar.size() - 1;
-				m_stackMap[ast_node->m_op.m_tokenValue] = addr;
+				program.envVar.push_back(ast_node->m_op.m_tokenValue);
+				addr = program.envVar.size() - 1;
+				m_envMap[ast_node->m_op.m_tokenValue] = addr;
 			}
 			else
 			{
 				addr = iter->second;
 			}
 			src = LOCAL_TYPE_LOCAL;
+			if(ast_node->m_isLvalue)
+			{
+				program.cmdList.push_back(ILCmd(ILCommandType::LEA, 
+							OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex), OperandLocation(src, addr)));
+			}
+			else
+			{
+				program.cmdList.push_back(ILCmd(ILCommandType::MOV, 
+							OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex), OperandLocation(src, addr)));
+			}
 		}
 		else if(ast_node->m_op.m_tokenType == TokenType::TOKEN_TYPE_STR || ast_node->m_op.m_tokenType == TokenType::TOKEN_TYPE_NUM)
 		{
 			auto iter = m_constMap.find(ast_node->m_op.m_tokenValue);
 			if(iter == m_constMap.end())
 			{
-				constVal.push_back(ast_node->m_op.m_tokenValue);
-				addr = constVal.size() - 1;
+				program.constVal.push_back(ast_node->m_op.m_tokenValue);
+				addr = program.constVal.size() - 1;
 				m_constMap[ast_node->m_op.m_tokenValue] = addr;
 			}
 			else
@@ -111,10 +123,18 @@ void TinaCompiler::traverseAST(TinaASTNode* ast_node, std::vector<ILCmd> & cmdLi
 				addr = iter->second;
 			}
 			src = LOCAL_TYPE_CONST;
+			if(ast_node->m_isLvalue)
+			{
+				abort();//const can not produce lVaule
+			}
+			else
+			{
+				program.cmdList.push_back(ILCmd(ILCommandType::MOV, 
+							OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex), OperandLocation(src, addr)));
+			}
 		}
 		
-		cmdList.push_back(ILCmd(ILCommandType::MOV, 
-					OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex), OperandLocation(src, addr)));
+
 		m_registerIndex += 1;
 	}
 }

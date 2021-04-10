@@ -30,6 +30,9 @@
     <ClCompile Include="Src\TinaCompiler.cpp">
       <Filter>Src</Filter>
     </ClCompile>
+    <ClCompile Include="Src\TinaRunTime.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Src\TinaTokenizer.h">
@@ -39,6 +42,9 @@
       <Filter>Src</Filter>
     </ClInclude>
     <ClInclude Include="Src\TinaCompiler.h">
+      <Filter>Src</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\TinaRunTime.h">
       <Filter>Src</Filter>
     </ClInclude>
   </ItemGroup>
