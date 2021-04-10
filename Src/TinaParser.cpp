@@ -25,6 +25,11 @@ void TinaParser::parse(std::vector<TokenInfo> tokenList)
 	m_root->addChild(exprNode);
 }
 
+TinaASTNode* TinaParser::getRoot()
+{
+	return m_root;
+}
+
 TinaASTNode* TinaParser::parseStatement()
 {
 	TinaASTNode * node;
@@ -94,26 +99,21 @@ TinaASTNode* TinaParser::parseExpr()
 
 TinaASTNode* TinaParser::parseAssign()
 {
-	TinaASTNode * node;
-	//a = X format
-	if(currToken().m_tokenType == TokenType::TOKEN_TYPE_IDENTIFIER && tryNextToken().m_tokenType == TokenType::TOKEN_TYPE_OP_ASSIGN)
-	{
-		node = new TinaASTNode(tryNextToken(), TinaASTNodeType::OPERATOR);
-		TinaASTNode * lValue = new TinaASTNode(currToken(), TinaASTNodeType::OPERATOR);
-		//skip a = 
-		nextToken();
-		nextToken();
-		TinaASTNode * rValue = parseCompExpr();
+	TinaASTNode * leftNode;
 
-		node->addChild(lValue);
-		node->addChild(rValue);
+	leftNode = parseCompExpr();
+	if(currToken().m_tokenType == TokenType::TOKEN_TYPE_OP_ASSIGN)
+	{
+		TinaASTNode * opNode = nullptr;
+		opNode = new TinaASTNode(currToken(), TinaASTNodeType::OPERATOR);
+		nextToken();
+		auto rightNode = parseAssign(); //right recursion for right asscoicaty
+		opNode->addChild(leftNode);
+		opNode->addChild(rightNode);
+		return opNode;
 		
 	}
-	else
-	{
-		node = parseCompExpr();
-	}
-	return node;
+	return leftNode;
 }
 
 TinaASTNode* TinaParser::parseCompExpr()

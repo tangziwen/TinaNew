@@ -32,8 +32,7 @@ struct TinaASTNode
  *				
  * <expr>		: <assignexpr> {, <assignexpr>}
  * 
- * <assignexpr> : <identifier> = <compexpr>
- *				| <compexpr>
+ * <assignexpr> : <compexpr> {= <compexpr>}
  *				
  * <compexpr> : <arithexpr> [== <arithexpr>]
  *			  | <arithexpr> [!= <arithexpr>]
@@ -62,6 +61,7 @@ class TinaParser
 {
 public:
 	void parse(std::vector<TokenInfo> tokenList);
+	TinaASTNode * getRoot();
 private:
 	TinaASTNode * parseStatement();
 	TinaASTNode * parseBlockStatement();
