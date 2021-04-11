@@ -76,6 +76,7 @@ private:
 	unsigned char m_registerIndex = 0;
 	std::unordered_map<std::string, int> m_stackMap;
 	std::unordered_map<std::string, int> m_envSymbolMap;
+	//常量没有名字，直接放值
 	std::unordered_map<std::string, int> m_constMap;
 	OperandLocation getLeafAddr(TinaASTNode * node, TinaProgram & program);
 	OperandLocation evalR(TinaASTNode * node, TinaProgram & program);
