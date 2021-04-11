@@ -144,12 +144,14 @@
     <ClCompile Include="Src\TinaRunTime.cpp" />
     <ClCompile Include="Src\TinaTokenizer.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Src\TinaValue.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Src\TinaCompiler.h" />
     <ClInclude Include="Src\TinaParser.h" />
     <ClInclude Include="Src\TinaRunTime.h" />
     <ClInclude Include="Src\TinaTokenizer.h" />
+    <ClInclude Include="Src\TinaValue.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

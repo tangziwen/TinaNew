@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include "TinaValue.h"
 namespace tzw
 {
 struct TinaASTNode;
@@ -9,6 +10,7 @@ struct TinaASTNode;
 enum class ILCommandType
 {
 	MOV,
+	MOVREF,
 	LEA,
 	PUSH,
 	POP,
@@ -25,7 +27,7 @@ enum class ILCommandType
 };
 
 #define LOCAL_TYPE_REGISTER (0)
-#define LOCAL_TYPE_LOCAL (1)
+#define LOCAL_TYPE_ENV (1)
 #define LOCAL_TYPE_CONST (2)
 #define LOCAL_TYPE_IMEEDIATE (3)
 
@@ -60,9 +62,9 @@ struct TinaProgram
 	{
 		
 	};
-	std::vector<std::string> envVar;
+	std::vector<std::string> envSymbol;
 	std::vector<std::string> stackVar;
-	std::vector<std::string> constVal;
+	std::vector<TinaVal> constVal;
 	std::vector<ILCmd> cmdList;
 };
 
@@ -71,13 +73,13 @@ class TinaCompiler
 public:
 	TinaProgram gen(TinaASTNode * astRootNode);
 private:
-	void traverseAST(TinaASTNode * ast_node, TinaProgram & program);
 	unsigned char m_registerIndex = 0;
 	std::unordered_map<std::string, int> m_stackMap;
-	std::unordered_map<std::string, int> m_envMap;
+	std::unordered_map<std::string, int> m_envSymbolMap;
 	std::unordered_map<std::string, int> m_constMap;
 	OperandLocation getLeafAddr(TinaASTNode * node, TinaProgram & program);
 	OperandLocation evalR(TinaASTNode * node, TinaProgram & program);
+	OperandLocation evalL(TinaASTNode * node, TinaProgram & program);
 };
 
 }

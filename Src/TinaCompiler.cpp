@@ -38,44 +38,49 @@ TinaProgram TinaCompiler::gen(TinaASTNode* astRootNode)
 
 OperandLocation TinaCompiler::getLeafAddr(TinaASTNode* ast_node, TinaProgram & program)
 {
-	if(ast_node->m_type == TinaASTNodeType::LEAF)//identifier const up-value
+	if(ast_node->m_type != TinaASTNodeType::LEAF)//identifier const up-value
 	{
-		int addr = -1;
-		char src = LOCAL_TYPE_LOCAL;
-		if(ast_node->m_op.m_tokenType == TokenType::TOKEN_TYPE_IDENTIFIER)
-		{
-			auto iter = m_envMap.find(ast_node->m_op.m_tokenValue);
-			if(iter == m_envMap.end())
-			{
-				program.envVar.push_back(ast_node->m_op.m_tokenValue);
-				addr = program.envVar.size() - 1;
-				m_envMap[ast_node->m_op.m_tokenValue] = addr;
-			}
-			else
-			{
-				addr = iter->second;
-			}
-			src = LOCAL_TYPE_LOCAL;
-			return OperandLocation(src, addr);
-		}
-		else if(ast_node->m_op.m_tokenType == TokenType::TOKEN_TYPE_STR || ast_node->m_op.m_tokenType == TokenType::TOKEN_TYPE_NUM)
-		{
-			auto iter = m_constMap.find(ast_node->m_op.m_tokenValue);
-			if(iter == m_constMap.end())
-			{
-				program.constVal.push_back(ast_node->m_op.m_tokenValue);
-				addr = program.constVal.size() - 1;
-				m_constMap[ast_node->m_op.m_tokenValue] = addr;
-			}
-			else
-			{
-				addr = iter->second;
-			}
-			src = LOCAL_TYPE_CONST;
-			return OperandLocation(src, addr);
-		}
-
+		abort();
 	}
+	int addr = -1;
+	char src = LOCAL_TYPE_ENV;
+	if(ast_node->m_op.m_tokenType == TokenType::TOKEN_TYPE_IDENTIFIER)
+	{
+		auto iter = m_envSymbolMap.find(ast_node->m_op.m_tokenValue);
+		if(iter == m_envSymbolMap.end())
+		{
+			program.envSymbol.push_back(ast_node->m_op.m_tokenValue);
+			addr = program.envSymbol.size() - 1;
+			m_envSymbolMap[ast_node->m_op.m_tokenValue] = addr;
+		}
+		else
+		{
+			addr = iter->second;
+		}
+		src = LOCAL_TYPE_ENV;
+		return OperandLocation(src, addr);
+	}
+	else if(ast_node->m_op.m_tokenType == TokenType::TOKEN_TYPE_STR || ast_node->m_op.m_tokenType == TokenType::TOKEN_TYPE_NUM)
+	{
+		auto iter = m_constMap.find(ast_node->m_op.m_tokenValue);
+		if(iter == m_constMap.end())
+		{
+			TinaVal val;
+			float rawVal = atof(ast_node->m_op.m_tokenValue.c_str());
+			val.m_data.valF = rawVal;
+			val.m_type == TinaValType::Float;
+			program.constVal.push_back(val);
+			addr = program.constVal.size() - 1;
+			m_constMap[ast_node->m_op.m_tokenValue] = addr;
+		}
+		else
+		{
+			addr = iter->second;
+		}
+		src = LOCAL_TYPE_CONST;
+		return OperandLocation(src, addr);
+	}
+
 	abort();
 }
 
@@ -164,17 +169,28 @@ OperandLocation TinaCompiler::evalR(TinaASTNode* ast_node, TinaProgram& program)
 				break;
 			case TokenType::TOKEN_TYPE_OP_ASSIGN://!!!! L-vaule use it own addr
 				{
-					auto locationL = getLeafAddr(ast_node->m_children[0], program);
+					auto locationL = evalL(ast_node->m_children[0], program);
 					auto locationR = evalR(ast_node->m_children[1], program);
 					auto resultLocation = OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex);
 					m_registerIndex ++;
 					//return resultLocation;
-
-					program.cmdList.push_back(ILCmd(ILCommandType::MOV, locationL, locationR));
+					program.cmdList.push_back(ILCmd(ILCommandType::MOVREF, locationL, locationR));
 					return locationL;
 				}
 				break;
 		}
 	}
+}
+
+OperandLocation TinaCompiler::evalL(TinaASTNode* ast_node, TinaProgram& program)
+{
+	if(ast_node->m_type == TinaASTNodeType::LEAF)//identifier const up-value
+	{
+		auto tmpAddr = OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex);
+		program.cmdList.push_back(ILCmd(ILCommandType::LEA, tmpAddr, getLeafAddr(ast_node, program)));
+		m_registerIndex++;
+		return tmpAddr;
+	}
+	abort();
 }
 }
