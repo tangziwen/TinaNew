@@ -76,7 +76,8 @@ private:
 	std::unordered_map<std::string, int> m_stackMap;
 	std::unordered_map<std::string, int> m_envMap;
 	std::unordered_map<std::string, int> m_constMap;
-	
+	OperandLocation getLeafAddr(TinaASTNode * node, TinaProgram & program);
+	OperandLocation evalR(TinaASTNode * node, TinaProgram & program);
 };
 
 }
