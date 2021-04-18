@@ -8,6 +8,7 @@ enum class TinaASTNodeType
 	OPERATOR,
 	LEAF, //identifier literal
 	SEQUENCE,
+	LOCAL_DECLARE,
 };
 //recursive descent parser
 struct TinaASTNode
@@ -26,8 +27,10 @@ struct TinaASTNode
  * <statement>	: blockstatement
  *				| singlestatement
  *
- * <blockstatement>	: <{> { <singlestatement> } <}>;
- * 
+ * <blockstatement>	: <{> { <localDeclare> } <}>
+ *
+ * <localDeclare>	: <local> <identifier> {, <identifier>} ;
+ *					| <singlestatement>
  * <singlestatement>	: ;
  *				| <expr> ;
  *				
@@ -67,6 +70,7 @@ private:
 	TinaASTNode * parseStatement();
 	TinaASTNode * parseBlockStatement();
 	TinaASTNode * parseSingleStatement();
+	TinaASTNode * parseLocalDeclare();
 	TinaASTNode * parseExpr();
 	TinaASTNode * parseAssign();
 	TinaASTNode * parseCompExpr();

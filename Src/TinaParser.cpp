@@ -76,6 +76,38 @@ TinaASTNode* TinaParser::parseSingleStatement()
 	return statementNode;
 }
 
+TinaASTNode* TinaParser::parseLocalDeclare()
+{
+	TinaASTNode * localDeclare = nullptr;
+	if(currToken().m_tokenType == TokenType::LOCAL)//local a {, b, c, d} ;
+	{
+		localDeclare = new TinaASTNode(TinaASTNodeType::LOCAL_DECLARE);
+		nextToken();
+		auto child = new TinaASTNode(currToken(), TinaASTNodeType::LEAF);
+		localDeclare->addChild(child);
+		nextToken();
+		if(currToken().m_tokenType == TokenType::TOKEN_TYPE_OP_COMMA)
+		{
+			while(currToken().m_tokenType == TokenType::TOKEN_TYPE_OP_COMMA)
+			{
+				nextToken();//eat comma
+				child = new TinaASTNode(currToken(), TinaASTNodeType::LEAF);
+				localDeclare->addChild(child);
+			}
+			nextToken();//eat ;
+		}
+		else if(currToken().m_tokenType == TokenType::TOKEN_TYPE_SEMICOLON)
+		{
+			nextToken();//eat ;
+		}
+	}
+	else
+	{
+		localDeclare = parseSingleStatement();
+	}
+	return localDeclare;
+}
+
 TinaASTNode* TinaParser::parseExpr()
 {
 	TinaASTNode * leftNode = parseAssign();

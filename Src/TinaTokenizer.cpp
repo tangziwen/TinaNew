@@ -167,8 +167,17 @@ TokenInfo TinaTokenizer::getNextToken()
 			tmpStr[i] = currChar();
 			nextChar();
 		}
-		result.m_tokenType = TokenType::TOKEN_TYPE_IDENTIFIER;
+		
 		result.m_tokenValue = tmpStr;
+		if(result.m_tokenValue == "local")
+		{
+			
+		}
+		else
+		{
+			result.m_tokenType = TokenType::TOKEN_TYPE_IDENTIFIER;
+		}
+		
 	}
 	//is it a number?
 	else if(isdigit(currChar()))

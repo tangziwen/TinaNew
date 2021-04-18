@@ -19,17 +19,17 @@ void TinaRunTime::execute(TinaProgram* program)
 			{
 				TinaVal val;
 				//From
-				if(cmd.m_B.m_locSrc == LOCAL_TYPE_ENV)//from env
+				if(cmd.m_B.m_locSrc == OperandLocation::locationType::ENV)//from env
 				{
-					val = (*refFromEnv(program->envSymbol[cmd.m_B.m_addr]).m_data.valRef);
+					val = (*refFromEnv(program->strLiteral[cmd.m_B.m_addr]).m_data.valRef);
 				}
-				else if (cmd.m_B.m_locSrc == LOCAL_TYPE_CONST)
+				else if (cmd.m_B.m_locSrc == OperandLocation::locationType::CONST)
 				{
 					val = program->constVal[cmd.m_B.m_addr];
 				}
 
 				//To
-				if(cmd.m_A.m_locSrc == LOCAL_TYPE_REGISTER)//To ref in specified register.
+				if(cmd.m_A.m_locSrc == OperandLocation::locationType::REGISTER)//To ref in specified register.
 				{
 					m_register[cmd.m_A.m_addr] = val;
 				}
@@ -69,21 +69,21 @@ void TinaRunTime::execute(TinaProgram* program)
 			case ILCommandType::HALT:
 			{
 			}break;
-			case ILCommandType::MOVREF:
+			case ILCommandType::MOVINDIRECT:
 			{
 				TinaVal val;
 				//From
-				if(cmd.m_B.m_locSrc == LOCAL_TYPE_REGISTER)//from env
+				if(cmd.m_B.m_locSrc == OperandLocation::locationType::REGISTER)//from register
 				{
 					val = m_register[cmd.m_B.m_addr];
 				}
-				else if (cmd.m_B.m_locSrc == LOCAL_TYPE_CONST)
+				else if (cmd.m_B.m_locSrc == OperandLocation::locationType::CONST)
 				{
 					val = program->constVal[cmd.m_B.m_addr];
 				}
 
 				//To
-				if(cmd.m_A.m_locSrc == LOCAL_TYPE_REGISTER)//To ref in specified register.
+				if(cmd.m_A.m_locSrc == OperandLocation::locationType::REGISTER)//To ref in specified register.
 				{
 					TinaVal ref = m_register[cmd.m_A.m_addr];
 					assert(ref.m_type == TinaValType::Ref);
@@ -94,13 +94,13 @@ void TinaRunTime::execute(TinaProgram* program)
 			{
 				TinaVal val;
 				//From
-				if(cmd.m_B.m_locSrc == LOCAL_TYPE_ENV)//from env
+				if(cmd.m_B.m_locSrc == OperandLocation::locationType::ENV)//from env
 				{
-					val = refFromEnv(program->envSymbol[cmd.m_B.m_addr]);
+					val = refFromEnv(program->strLiteral[cmd.m_B.m_addr]);
 				}
 
 				//to
-				if(cmd.m_A.m_locSrc == LOCAL_TYPE_REGISTER)
+				if(cmd.m_A.m_locSrc == OperandLocation::locationType::REGISTER)
 				{
 					m_register[cmd.m_A.m_addr] = val;
 				}

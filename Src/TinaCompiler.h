@@ -10,7 +10,7 @@ struct TinaASTNode;
 enum class ILCommandType
 {
 	MOV,
-	MOVREF,
+	MOVINDIRECT,
 	LEA,
 	PUSH,
 	POP,
@@ -26,16 +26,21 @@ enum class ILCommandType
 
 };
 
-#define LOCAL_TYPE_REGISTER (0)
-#define LOCAL_TYPE_ENV (1)
-#define LOCAL_TYPE_CONST (2)
-#define LOCAL_TYPE_IMEEDIATE (3)
+
 
 struct OperandLocation
 {
-	char m_locSrc = LOCAL_TYPE_REGISTER;
+	enum class locationType
+	{
+		REGISTER = 0,
+		ENV,
+		CONST,
+		IMEEDIATE,
+		INVALID,
+	};
+	locationType m_locSrc = locationType::INVALID;
 	unsigned char m_addr = 0;
-	OperandLocation(char src, unsigned char addr): m_locSrc(src),m_addr(addr)
+	OperandLocation(locationType src, unsigned char addr): m_locSrc(src),m_addr(addr)
 	{
 		
 	}
@@ -62,12 +67,14 @@ struct TinaProgram
 	{
 		
 	};
-	std::vector<std::string> envSymbol;
+	std::vector<std::string> strLiteral;//string literal, use for env variable look up, member look up etc.
 	std::vector<std::string> stackVar;
 	std::vector<TinaVal> constVal;
 	std::vector<ILCmd> cmdList;
 };
-
+//statk vars are early binding, we only save index
+//env vars (upvaule) are late binding, we must look up in runtime
+//properties access eg. A.B are late binding too, since the variable hase dynamic type. we store B to const list
 class TinaCompiler
 {
 public:
@@ -81,6 +88,8 @@ private:
 	OperandLocation getLeafAddr(TinaASTNode * node, TinaProgram & program);
 	OperandLocation evalR(TinaASTNode * node, TinaProgram & program);
 	OperandLocation evalL(TinaASTNode * node, TinaProgram & program);
+	OperandLocation genTmpValue();
+	void decreaseRegIndex(int count = 1);
 };
 
 }

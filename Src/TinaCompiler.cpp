@@ -43,21 +43,21 @@ OperandLocation TinaCompiler::getLeafAddr(TinaASTNode* ast_node, TinaProgram & p
 		abort();
 	}
 	int addr = -1;
-	char src = LOCAL_TYPE_ENV;
+	OperandLocation::locationType src = OperandLocation::locationType::ENV;
 	if(ast_node->m_op.m_tokenType == TokenType::TOKEN_TYPE_IDENTIFIER)
 	{
 		auto iter = m_envSymbolMap.find(ast_node->m_op.m_tokenValue);
 		if(iter == m_envSymbolMap.end())
 		{
-			program.envSymbol.push_back(ast_node->m_op.m_tokenValue);
-			addr = program.envSymbol.size() - 1;
+			program.strLiteral.push_back(ast_node->m_op.m_tokenValue);
+			addr = program.strLiteral.size() - 1;
 			m_envSymbolMap[ast_node->m_op.m_tokenValue] = addr;
 		}
 		else
 		{
 			addr = iter->second;
 		}
-		src = LOCAL_TYPE_ENV;
+		src = OperandLocation::locationType::ENV;
 		return OperandLocation(src, addr);
 	}
 	else if(ast_node->m_op.m_tokenType == TokenType::TOKEN_TYPE_STR || ast_node->m_op.m_tokenType == TokenType::TOKEN_TYPE_NUM)
@@ -77,14 +77,14 @@ OperandLocation TinaCompiler::getLeafAddr(TinaASTNode* ast_node, TinaProgram & p
 		{
 			addr = iter->second;
 		}
-		src = LOCAL_TYPE_CONST;
+		src = OperandLocation::locationType::CONST;
 		return OperandLocation(src, addr);
 	}
 
 	abort();
 }
 
-//Eval R vaule for expr, we only process inter-node, return location
+//Eval R vaule for expr£¬ it will generate a temp var
 OperandLocation TinaCompiler::evalR(TinaASTNode* ast_node, TinaProgram& program)
 {
 
@@ -97,6 +97,14 @@ OperandLocation TinaCompiler::evalR(TinaASTNode* ast_node, TinaProgram& program)
 		}
 		return lastLocation;
 	}
+	else if(ast_node->m_type == TinaASTNodeType::LOCAL_DECLARE) // add declare
+	{
+		for(int i = 0; i < ast_node->m_children.size(); i++)
+		{
+			program.stackVar.push_back(ast_node->m_children[i]->m_op.m_tokenValue);
+			m_stackMap[ast_node->m_children[i]->m_op.m_tokenValue] = program.stackVar.size() - 1;
+		}
+	}
 	else if(ast_node->m_type == TinaASTNodeType::CALL)
 	{
 		if(ast_node->m_children.size() > 1)
@@ -108,16 +116,14 @@ OperandLocation TinaCompiler::evalR(TinaASTNode* ast_node, TinaProgram& program)
 		}
 		int argNum = ast_node->m_children.size() - 1;
 		program.cmdList.push_back(ILCmd(ILCommandType::CALL,
-			getLeafAddr(ast_node->m_children[0], program), OperandLocation(LOCAL_TYPE_IMEEDIATE, argNum), OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex - argNum + 1)));
+			getLeafAddr(ast_node->m_children[0], program), OperandLocation(OperandLocation::locationType::IMEEDIATE, argNum), OperandLocation(OperandLocation::locationType::REGISTER, m_registerIndex - argNum + 1)));
 		m_registerIndex -= argNum;
-		
 	}
 	else if(ast_node->m_type == TinaASTNodeType::LEAF)//identifier const up-value
 	{
-		auto tmpAddr = OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex);//RValue use a temp copy value's addr
-		program.cmdList.push_back(ILCmd(ILCommandType::MOV, tmpAddr, getLeafAddr(ast_node, program)));
-		m_registerIndex++;
-		return tmpAddr;
+		auto resultLocation = genTmpValue();
+		program.cmdList.push_back(ILCmd(ILCommandType::MOV, resultLocation, getLeafAddr(ast_node, program)));
+		return resultLocation;
 	}
 	else if(ast_node->m_type == TinaASTNodeType::OPERATOR)
 	{
@@ -127,10 +133,10 @@ OperandLocation TinaCompiler::evalR(TinaASTNode* ast_node, TinaProgram& program)
 				{
 					auto locationL = evalR(ast_node->m_children[0], program);
 					auto locationR = evalR(ast_node->m_children[1], program);
-					auto resultLocation = OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex);
+					decreaseRegIndex(2);
+					auto resultLocation = genTmpValue();
 					program.cmdList.push_back(ILCmd(ILCommandType::ADD, 
 						locationL, locationR, resultLocation));
-					m_registerIndex ++;
 					return resultLocation;
 				}
 				break;
@@ -138,10 +144,11 @@ OperandLocation TinaCompiler::evalR(TinaASTNode* ast_node, TinaProgram& program)
 				{
 					auto locationL = evalR(ast_node->m_children[0], program);
 					auto locationR = evalR(ast_node->m_children[1], program);
-					auto resultLocation = OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex);
+					decreaseRegIndex(2);
+					auto resultLocation = genTmpValue();
+					
 					program.cmdList.push_back(ILCmd(ILCommandType::SUB, 
 						locationL, locationR, resultLocation));
-					m_registerIndex ++;
 					return resultLocation;
 				}
 				break;
@@ -149,10 +156,10 @@ OperandLocation TinaCompiler::evalR(TinaASTNode* ast_node, TinaProgram& program)
 				{
 					auto locationL = evalR(ast_node->m_children[0], program);
 					auto locationR = evalR(ast_node->m_children[1], program);
-					auto resultLocation = OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex);
+					decreaseRegIndex(2);
+					auto resultLocation = genTmpValue();
 					program.cmdList.push_back(ILCmd(ILCommandType::MUL, 
 						locationL, locationR, resultLocation));
-					m_registerIndex ++;
 					return resultLocation;
 				}
 				break;
@@ -160,21 +167,20 @@ OperandLocation TinaCompiler::evalR(TinaASTNode* ast_node, TinaProgram& program)
 				{
 					auto locationL = evalR(ast_node->m_children[0], program);
 					auto locationR = evalR(ast_node->m_children[1], program);
-					auto resultLocation = OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex);
+					decreaseRegIndex(2);
+					auto resultLocation = genTmpValue();
 					program.cmdList.push_back(ILCmd(ILCommandType::DIV, 
 						locationL, locationR, resultLocation));
-					m_registerIndex ++;
 					return resultLocation;
 				}
 				break;
 			case TokenType::TOKEN_TYPE_OP_ASSIGN://!!!! L-vaule use it own addr
 				{
-					auto locationL = evalL(ast_node->m_children[0], program);
+					
 					auto locationR = evalR(ast_node->m_children[1], program);
-					auto resultLocation = OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex);
-					m_registerIndex ++;
+					auto locationL = evalL(ast_node->m_children[0], program);
 					//return resultLocation;
-					program.cmdList.push_back(ILCmd(ILCommandType::MOVREF, locationL, locationR));
+					program.cmdList.push_back(ILCmd(ILCommandType::MOVINDIRECT, locationL, locationR));
 					return locationL;
 				}
 				break;
@@ -186,11 +192,23 @@ OperandLocation TinaCompiler::evalL(TinaASTNode* ast_node, TinaProgram& program)
 {
 	if(ast_node->m_type == TinaASTNodeType::LEAF)//identifier const up-value
 	{
-		auto tmpAddr = OperandLocation(LOCAL_TYPE_REGISTER, m_registerIndex);
+		auto tmpAddr = genTmpValue();
+		//move the address to register.
 		program.cmdList.push_back(ILCmd(ILCommandType::LEA, tmpAddr, getLeafAddr(ast_node, program)));
-		m_registerIndex++;
 		return tmpAddr;
 	}
 	abort();
+}
+
+OperandLocation TinaCompiler::genTmpValue()
+{
+	auto tmpAddr = OperandLocation(OperandLocation::locationType::REGISTER, m_registerIndex);
+	m_registerIndex++;
+	return tmpAddr;
+}
+
+void TinaCompiler::decreaseRegIndex(int count)
+{
+	m_registerIndex -= count;
 }
 }
