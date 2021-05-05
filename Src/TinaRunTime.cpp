@@ -6,27 +6,21 @@ namespace tzw
 {
 void TinaRunTime::execute(TinaProgram* program)
 {
-	for (;;pc++)
+	for (;;m_PC++)
 	{
-		auto& cmd = program->cmdList[pc];
+		auto& cmd = program->cmdList[m_PC];
 		if (cmd.m_type == ILCommandType::HALT)
 		{
 			break;
 		}
 		switch (cmd.m_type)
 		{
-			case ILCommandType::MOV:
+			case ILCommandType::MOV:// mov target src
 			{
 				TinaVal val;
 				//From
-				if(cmd.m_B.m_locSrc == OperandLocation::locationType::ENV)//from env
-				{
-					val = (*refFromEnv(program->strLiteral[cmd.m_B.m_addr]).m_data.valRef);
-				}
-				else if (cmd.m_B.m_locSrc == OperandLocation::locationType::CONST)
-				{
-					val = program->constVal[cmd.m_B.m_addr];
-				}
+
+				getVal(program, cmd.m_B, &val);
 
 				//To
 				if(cmd.m_A.m_locSrc == OperandLocation::locationType::REGISTER)//To ref in specified register.
@@ -44,15 +38,55 @@ void TinaRunTime::execute(TinaProgram* program)
 			}break;
 			case ILCommandType::ADD:
 			{
+				TinaVal a, b;
+				getVal(program, cmd.m_B, &a);
+				getVal(program, cmd.m_C, &b);
+
+				//To
+				if(cmd.m_A.m_locSrc == OperandLocation::locationType::REGISTER)//To ref in specified register.
+				{
+					m_register[cmd.m_A.m_addr] = valAdd(&a, &b);
+				}
+					
 			}break;
 			case ILCommandType::SUB:
 			{
+				TinaVal a, b;
+				getVal(program, cmd.m_B, &a);
+				getVal(program, cmd.m_C, &b);
+
+				//To
+				if(cmd.m_A.m_locSrc == OperandLocation::locationType::REGISTER)//To ref in specified register.
+				{
+					m_register[cmd.m_A.m_addr] = valSub(&a, &b);
+				}
+					
 			}break;
 			case ILCommandType::MUL:
 			{
+				TinaVal a, b;
+				getVal(program, cmd.m_B, &a);
+				getVal(program, cmd.m_C, &b);
+
+				//To
+				if(cmd.m_A.m_locSrc == OperandLocation::locationType::REGISTER)//To ref in specified register.
+				{
+					m_register[cmd.m_A.m_addr] = valMul(&a, &b);
+				}
+					
 			}break;
 			case ILCommandType::DIV:
 			{
+				TinaVal a, b;
+				getVal(program, cmd.m_B, &a);
+				getVal(program, cmd.m_C, &b);
+
+				//To
+				if(cmd.m_A.m_locSrc == OperandLocation::locationType::REGISTER)//To ref in specified register.
+				{
+					m_register[cmd.m_A.m_addr] = valDiv(&a, &b);
+				}
+					
 			}break;
 			case ILCommandType::JMP:
 			{
@@ -65,11 +99,23 @@ void TinaRunTime::execute(TinaProgram* program)
 			}break;
 			case ILCommandType::PRINT:
 			{
+				TinaVal val;
+				//From
+				if(cmd.m_A.m_locSrc == OperandLocation::locationType::REGISTER)//from register
+				{
+					val = m_register[cmd.m_A.m_addr];
+				}
+				else if (cmd.m_A.m_locSrc == OperandLocation::locationType::CONST)
+				{
+					val = program->constVal[cmd.m_A.m_addr];
+				}
+
+				printf("Program Print %s\n", val.toStr());
 			}break;
 			case ILCommandType::HALT:
 			{
 			}break;
-			case ILCommandType::MOVINDIRECT:
+			case ILCommandType::MOVINDIRECT: //MOV [target] src
 			{
 				TinaVal val;
 				//From
@@ -90,15 +136,19 @@ void TinaRunTime::execute(TinaProgram* program)
 					(*ref.m_data.valRef) = val;
 				}
 			}break;
-			case ILCommandType::LEA:
+			case ILCommandType::LEA:// lea
 			{
 				TinaVal val;
 				//From
-				if(cmd.m_B.m_locSrc == OperandLocation::locationType::ENV)//from env
+				if(cmd.m_B.m_locSrc == OperandLocation::locationType::ENV)//from env, we need to store string literal
 				{
 					val = refFromEnv(program->strLiteral[cmd.m_B.m_addr]);
 				}
-
+				//From
+				if(cmd.m_B.m_locSrc == OperandLocation::locationType::STACK)//from Stack
+				{
+					val = refFromStack(cmd.m_B.m_addr);
+				}
 				//to
 				if(cmd.m_A.m_locSrc == OperandLocation::locationType::REGISTER)
 				{
@@ -130,5 +180,36 @@ TinaVal TinaRunTime::refFromEnv(std::string identifier)
 	}
 
 	return resultVal;
+}
+
+TinaVal TinaRunTime::refFromStack(int stackID)
+{
+	
+	TinaVal resultVal;
+	resultVal.m_type = TinaValType::Ref;
+
+	resultVal.m_data.valRef = &m_stack[m_SBP + stackID];
+	return resultVal;
+}
+
+void TinaRunTime::getVal(TinaProgram* program, OperandLocation location, TinaVal* val)
+{
+	//From
+	if(location.m_locSrc == OperandLocation::locationType::ENV)//from env
+	{
+		*val = (*refFromEnv(program->strLiteral[location.m_addr]).m_data.valRef);
+	}
+	else if (location.m_locSrc == OperandLocation::locationType::CONST)
+	{
+		*val = program->constVal[location.m_addr];
+	}
+	else if(location.m_locSrc == OperandLocation::locationType::REGISTER)//To ref in specified register.
+	{
+		*val = m_register[location.m_addr];
+	}
+	else if(location.m_locSrc == OperandLocation::locationType::STACK)//To ref in specified register.
+	{
+		*val = m_stack[m_SBP + location.m_addr];
+	}
 }
 }

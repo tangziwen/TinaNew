@@ -171,7 +171,11 @@ TokenInfo TinaTokenizer::getNextToken()
 		result.m_tokenValue = tmpStr;
 		if(result.m_tokenValue == "local")
 		{
-			
+			result.m_tokenType = TokenType::LOCAL;
+		}
+		else if(result.m_tokenValue == "print")
+		{
+			result.m_tokenType = TokenType::TOKEN_TYPE_PRINT;
 		}
 		else
 		{

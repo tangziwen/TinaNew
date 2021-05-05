@@ -52,12 +52,41 @@ TinaASTNode* TinaParser::parseBlockStatement()
 		nextToken();
 		while(currToken().m_tokenType != TokenType::TOKEN_TYPE_RIGHT_BRACE)
 		{
-			TinaASTNode * node = parseSingleStatement();
-			blockNode->addChild(node);
+			if(currToken().m_tokenType == TokenType::TOKEN_TYPE_PRINT )
+			{
+				TinaASTNode * node = parsePrintStatement();
+				blockNode->addChild(node);
+			}
+			else if(currToken().m_tokenType == TokenType::LOCAL )
+			{
+				TinaASTNode * node = parseLocalDeclare();
+				blockNode->addChild(node);
+			}
+			else
+			{
+				TinaASTNode * statementNode = parseSingleStatement();
+				blockNode->addChild(statementNode);
+			}
 		}
 		nextToken();//eat the right brace
 	}
 	return blockNode;
+}
+
+TinaASTNode* TinaParser::parsePrintStatement()
+{
+	TinaASTNode * statementNode = nullptr;
+	if(currToken().m_tokenType == TokenType::TOKEN_TYPE_PRINT)//start with print
+	{
+		statementNode = new TinaASTNode(TinaASTNodeType::PRINT);
+		nextToken();//eat the print
+		statementNode->addChild(parseSingleStatement());
+	}
+	else
+	{
+		statementNode = parseSingleStatement();
+	}
+	return statementNode;
 }
 
 TinaASTNode* TinaParser::parseSingleStatement()
@@ -75,6 +104,7 @@ TinaASTNode* TinaParser::parseSingleStatement()
 	}
 	return statementNode;
 }
+
 
 TinaASTNode* TinaParser::parseLocalDeclare()
 {

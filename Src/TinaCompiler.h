@@ -37,6 +37,7 @@ struct OperandLocation
 		CONST,
 		IMEEDIATE,
 		INVALID,
+		STACK,
 	};
 	locationType m_locSrc = locationType::INVALID;
 	unsigned char m_addr = 0;
@@ -57,6 +58,7 @@ struct ILCmd
 	OperandLocation m_B;
 	OperandLocation m_C;
 	explicit ILCmd(ILCommandType type);
+	ILCmd(ILCommandType type, OperandLocation A);
 	ILCmd(ILCommandType type, OperandLocation A, OperandLocation B);
 	ILCmd(ILCommandType type, OperandLocation A, OperandLocation B, OperandLocation C);
 };

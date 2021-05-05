@@ -8,6 +8,10 @@ ILCmd::ILCmd(ILCommandType type):m_type(type)
 {
 }
 
+ILCmd::ILCmd(ILCommandType type, OperandLocation A):m_type(type),m_A(A)
+{
+}
+
 ILCmd::ILCmd(ILCommandType type, OperandLocation A, OperandLocation B):m_type(type),m_A(A), m_B(B)
 {
 }
@@ -46,18 +50,28 @@ OperandLocation TinaCompiler::getLeafAddr(TinaASTNode* ast_node, TinaProgram & p
 	OperandLocation::locationType src = OperandLocation::locationType::ENV;
 	if(ast_node->m_op.m_tokenType == TokenType::TOKEN_TYPE_IDENTIFIER)
 	{
-		auto iter = m_envSymbolMap.find(ast_node->m_op.m_tokenValue);
-		if(iter == m_envSymbolMap.end())
+
+		auto localIter = m_stackMap.find(ast_node->m_op.m_tokenValue);
+		if(localIter != m_stackMap.end())//local var
 		{
-			program.strLiteral.push_back(ast_node->m_op.m_tokenValue);
-			addr = program.strLiteral.size() - 1;
-			m_envSymbolMap[ast_node->m_op.m_tokenValue] = addr;
+			src = OperandLocation::locationType::STACK;
+			addr = localIter->second;
 		}
-		else
+		else // env var
 		{
-			addr = iter->second;
+			auto iter = m_envSymbolMap.find(ast_node->m_op.m_tokenValue);
+			if(iter == m_envSymbolMap.end())
+			{
+				program.strLiteral.push_back(ast_node->m_op.m_tokenValue);
+				addr = program.strLiteral.size() - 1;
+				m_envSymbolMap[ast_node->m_op.m_tokenValue] = addr;
+			}
+			else
+			{
+				addr = iter->second;
+			}
+			src = OperandLocation::locationType::ENV;
 		}
-		src = OperandLocation::locationType::ENV;
 		return OperandLocation(src, addr);
 	}
 	else if(ast_node->m_op.m_tokenType == TokenType::TOKEN_TYPE_STR || ast_node->m_op.m_tokenType == TokenType::TOKEN_TYPE_NUM)
@@ -68,7 +82,7 @@ OperandLocation TinaCompiler::getLeafAddr(TinaASTNode* ast_node, TinaProgram & p
 			TinaVal val;
 			float rawVal = atof(ast_node->m_op.m_tokenValue.c_str());
 			val.m_data.valF = rawVal;
-			val.m_type == TinaValType::Float;
+			val.m_type = TinaValType::Float;
 			program.constVal.push_back(val);
 			addr = program.constVal.size() - 1;
 			m_constMap[ast_node->m_op.m_tokenValue] = addr;
@@ -99,11 +113,13 @@ OperandLocation TinaCompiler::evalR(TinaASTNode* ast_node, TinaProgram& program)
 	}
 	else if(ast_node->m_type == TinaASTNodeType::LOCAL_DECLARE) // add declare
 	{
+		OperandLocation noUsedLocation;
 		for(int i = 0; i < ast_node->m_children.size(); i++)
 		{
 			program.stackVar.push_back(ast_node->m_children[i]->m_op.m_tokenValue);
 			m_stackMap[ast_node->m_children[i]->m_op.m_tokenValue] = program.stackVar.size() - 1;
 		}
+		return noUsedLocation;
 	}
 	else if(ast_node->m_type == TinaASTNodeType::CALL)
 	{
@@ -118,6 +134,13 @@ OperandLocation TinaCompiler::evalR(TinaASTNode* ast_node, TinaProgram& program)
 		program.cmdList.push_back(ILCmd(ILCommandType::CALL,
 			getLeafAddr(ast_node->m_children[0], program), OperandLocation(OperandLocation::locationType::IMEEDIATE, argNum), OperandLocation(OperandLocation::locationType::REGISTER, m_registerIndex - argNum + 1)));
 		m_registerIndex -= argNum;
+	}
+	else if(ast_node->m_type == TinaASTNodeType::PRINT)
+	{
+		OperandLocation noUsedLocation;
+		auto locationL = evalR(ast_node->m_children[0], program);
+		program.cmdList.push_back(ILCmd(ILCommandType::PRINT,locationL));
+		return noUsedLocation;
 	}
 	else if(ast_node->m_type == TinaASTNodeType::LEAF)//identifier const up-value
 	{
@@ -136,7 +159,7 @@ OperandLocation TinaCompiler::evalR(TinaASTNode* ast_node, TinaProgram& program)
 					decreaseRegIndex(2);
 					auto resultLocation = genTmpValue();
 					program.cmdList.push_back(ILCmd(ILCommandType::ADD, 
-						locationL, locationR, resultLocation));
+						resultLocation, locationL, locationR));
 					return resultLocation;
 				}
 				break;
@@ -148,7 +171,7 @@ OperandLocation TinaCompiler::evalR(TinaASTNode* ast_node, TinaProgram& program)
 					auto resultLocation = genTmpValue();
 					
 					program.cmdList.push_back(ILCmd(ILCommandType::SUB, 
-						locationL, locationR, resultLocation));
+						resultLocation, locationL, locationR));
 					return resultLocation;
 				}
 				break;
@@ -159,7 +182,7 @@ OperandLocation TinaCompiler::evalR(TinaASTNode* ast_node, TinaProgram& program)
 					decreaseRegIndex(2);
 					auto resultLocation = genTmpValue();
 					program.cmdList.push_back(ILCmd(ILCommandType::MUL, 
-						locationL, locationR, resultLocation));
+						resultLocation, locationL, locationR));
 					return resultLocation;
 				}
 				break;
@@ -170,7 +193,7 @@ OperandLocation TinaCompiler::evalR(TinaASTNode* ast_node, TinaProgram& program)
 					decreaseRegIndex(2);
 					auto resultLocation = genTmpValue();
 					program.cmdList.push_back(ILCmd(ILCommandType::DIV, 
-						locationL, locationR, resultLocation));
+						resultLocation, locationL, locationR));
 					return resultLocation;
 				}
 				break;

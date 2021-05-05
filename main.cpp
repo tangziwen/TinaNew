@@ -8,7 +8,7 @@ using namespace  tzw;
 int main()
 {
 	TinaTokenizer *tokenizer = new TinaTokenizer();
-	tokenizer->loadStr("{a = 5 + 3 * 2;}");
+	tokenizer->loadStr("{local a,b; b= 2; a = (5 + b) * 2; print a;}");
 	std::vector<TokenInfo> result =  tokenizer->getTokenList();
 	for(TokenInfo& token : result)
 	{
